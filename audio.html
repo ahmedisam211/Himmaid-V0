@@ -1,0 +1,227 @@
+{% extends "layout.html" %}
+
+{% block title %}محمد الحسن سالم حميد | التسجيلات الصوتية{% endblock %}
+
+{% block body_class %}page-media{% endblock %}
+
+{% block head_extra %}
+<style>
+    .audio-card {
+        background-color: #f5f0e1;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+    }
+
+    .audio-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .audio-title {
+        color: #8b7355;
+        margin-bottom: 10px;
+    }
+
+    .audio-description {
+        margin-bottom: 15px;
+        color: #705f40;
+        line-height: 1.6;
+    }
+
+    .audio-icon {
+        display: inline-block;
+        background-color: #b39c7d;
+        color: white;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 50px;
+        margin-bottom: 15px;
+    }
+
+    .search-container {
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .search-form {
+        display: flex;
+        width: 100%;
+        max-width: 600px;
+    }
+
+    .search-input {
+        flex-grow: 1;
+        padding: 10px 15px;
+        border: 2px solid #d5c6a8;
+        border-radius: 4px 0 0 4px;
+        font-size: 1em;
+        font-family: 'Noto Nastaliq Urdu', serif;
+    }
+
+    .search-button {
+        padding: 10px 20px;
+        background-color: #b39c7d;
+        color: white;
+        border: none;
+        border-radius: 0 4px 4px 0;
+        cursor: pointer;
+        font-family: 'Noto Nastaliq Urdu', serif;
+    }
+
+    .search-button:hover {
+        background-color: #8b7355;
+    }
+
+    .search-results {
+        margin-top: 20px;
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 20px;
+        background-color: #f5f0e1;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+
+    @media (min-width: 768px) {
+        .audio-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .audio-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-content">
+        <section class="section">
+            <h2 class="section-title">التسجيلات الصوتية</h2>
+            <p class="text-center" style="margin-bottom: 2rem;">
+                مجموعة من التسجيلات الصوتية للشاعر محمد الحسن سالم حميد، تشمل إلقاءات شعرية ومقابلات إذاعية
+            </p>
+            
+            <div class="search-container">
+                <form class="search-form" id="audio-search-form">
+                    <input type="text" id="audio-search" class="search-input" placeholder="ابحث عن تسجيل صوتي..." value="{{ search_query }}">
+                    <button type="submit" class="search-button">بحث</button>
+                </form>
+            </div>
+            
+            <div id="search-results" class="search-results" style="display: none;">
+                <h3 class="search-results-title">نتائج البحث</h3>
+                <div class="audio-grid" id="search-results-container"></div>
+            </div>
+            
+            <div id="recordings-container">
+                <h3 style="margin-bottom: 1rem;">الإلقاءات الشعرية</h3>
+                
+                <div class="audio-grid">
+                    {% for recording_id, recording in recordings.items() %}
+                    <div class="audio-card" onclick="window.location.href='/audio/{{ recording_id }}'">
+                        <div class="audio-icon">
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                        <h3 class="audio-title">{{ recording.title }}</h3>
+                        <p class="audio-description">{{ recording.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="section" style="margin-top: 2rem;">
+                    <h3 style="margin-bottom: 1rem;">ملاحظة</h3>
+                    <p>
+                        عند النقر على أي تسجيل صوتي، سيتم الانتقال إلى صفحة خاصة بالتسجيل حيث يمكنك الاستماع إليه وقراءة نص القصيدة كاملاً.
+                    </p>
+                    <p>
+                        إذا كان لديك أي تسجيلات صوتية للشاعر وترغب في المساهمة في إثراء هذا الموقع، يرجى الاتصال بنا عبر <a href="/contact">صفحة الاتصال</a> أو تقديمها مباشرة عبر <a href="/submit">صفحة المشاركة</a>.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('audio-search-form');
+    const searchInput = document.getElementById('audio-search');
+    const searchResults = document.getElementById('search-results');
+    const searchResultsContainer = document.getElementById('search-results-container');
+    const recordingsContainer = document.getElementById('recordings-container');
+    
+    // Search functionality
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = searchInput.value.trim();
+        
+        if (query.length > 0) {
+            fetch(`/audio/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(results => {
+                    searchResultsContainer.innerHTML = '';
+                    
+                    if (results.length > 0) {
+                        results.forEach(result => {
+                            const audioCard = document.createElement('div');
+                            audioCard.className = 'audio-card';
+                            audioCard.onclick = function() {
+                                window.location.href = `/audio/${result.id}`;
+                            };
+                            
+                            audioCard.innerHTML = `
+                                <div class="audio-icon">
+                                    <i class="fas fa-microphone"></i>
+                                </div>
+                                <h3 class="audio-title">${result.title}</h3>
+                                <p class="audio-description">${result.description}</p>
+                            `;
+                            
+                            searchResultsContainer.appendChild(audioCard);
+                        });
+                        
+                        searchResults.style.display = 'block';
+                        recordingsContainer.style.display = 'none';
+                    } else {
+                        searchResultsContainer.innerHTML = `
+                            <div class="no-results">
+                                <p>لم يتم العثور على نتائج تطابق "${query}"</p>
+                            </div>
+                        `;
+                        searchResults.style.display = 'block';
+                        recordingsContainer.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching audio recordings:', error);
+                });
+        } else {
+            searchResults.style.display = 'none';
+            recordingsContainer.style.display = 'block';
+        }
+    });
+    
+    // Auto-search if there's a query in the URL
+    if (searchInput.value.trim().length > 0) {
+        searchForm.dispatchEvent(new Event('submit'));
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,241 @@
+{% extends "layout.html" %}
+
+{% block title %}محمد الحسن سالم حميد | القصائد{% endblock %}
+
+{% block body_class %}page-poems{% endblock %}
+
+{% block head_extra %}
+<style>
+    .poem-card {
+        background-color: #f5f0e1;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .poem-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .poem-title {
+        color: #8b7355;
+        margin-bottom: 10px;
+    }
+
+    .poem-preview {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+
+    .poem-meta {
+        font-size: 0.9em;
+        color: #a08b6c;
+        margin-bottom: 15px;
+    }
+
+    .poem-link {
+        display: inline-block;
+        padding: 5px 15px;
+        background-color: #b39c7d;
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background-color 0.3s ease;
+    }
+
+    .poem-link:hover {
+        background-color: #8b7355;
+    }
+
+    .collection-title {
+        color: #8b7355;
+        border-bottom: 2px solid #d5c6a8;
+        padding-bottom: 10px;
+        margin: 30px 0 20px;
+    }
+
+    .collection-description {
+        margin-bottom: 20px;
+        color: #705f40;
+    }
+
+    .search-container {
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .search-form {
+        display: flex;
+        width: 100%;
+        max-width: 600px;
+    }
+
+    .search-input {
+        flex-grow: 1;
+        padding: 10px 15px;
+        border: 2px solid #d5c6a8;
+        border-radius: 4px 0 0 4px;
+        font-size: 1em;
+        font-family: 'Noto Nastaliq Urdu', serif;
+    }
+
+    .search-button {
+        padding: 10px 20px;
+        background-color: #b39c7d;
+        color: white;
+        border: none;
+        border-radius: 0 4px 4px 0;
+        cursor: pointer;
+        font-family: 'Noto Nastaliq Urdu', serif;
+    }
+
+    .search-button:hover {
+        background-color: #8b7355;
+    }
+
+    .search-results {
+        margin-top: 20px;
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 20px;
+        background-color: #f5f0e1;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+
+    @media (min-width: 768px) {
+        .poems-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .poems-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="main-content">
+        <section class="section">
+            <h2 class="section-title">قصائد محمد الحسن سالم حميد</h2>
+            <p class="text-center" style="margin-bottom: 2rem;">
+                مجموعة مختارة من أبرز قصائد الشاعر محمد الحسن سالم حميد، مرتبة حسب الموضوع
+            </p>
+            
+            <div class="search-container">
+                <form class="search-form" id="poem-search-form">
+                    <input type="text" id="poem-search" class="search-input" placeholder="ابحث عن قصيدة..." value="{{ search_query }}">
+                    <button type="submit" class="search-button">بحث</button>
+                </form>
+            </div>
+            
+            <div id="search-results" class="search-results" style="display: none;">
+                <h3 class="search-results-title">نتائج البحث</h3>
+                <div class="poems-grid" id="search-results-container"></div>
+            </div>
+            
+            <div id="collections-container">
+                {% for collection_id, collection in collections.items() %}
+                <div class="poem-collection">
+                    <h3 class="collection-title">{{ collection.name }}</h3>
+                    <p class="collection-description">{{ collection.description }}</p>
+                    
+                    <div class="poems-grid">
+                        {% for poem in collection.poems %}
+                        <div class="poem-card">
+                            <h3 class="poem-title">{{ poem.title }}</h3>
+                            <div class="poem-meta">عام {{ poem.year }}</div>
+                            <p class="poem-preview">{{ poem.content.split('\n\n')[0] }}</p>
+                            <a href="/poem/{{ collection_id }}/{{ poem.id }}" class="poem-link">اقرأ القصيدة كاملة</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('poem-search-form');
+    const searchInput = document.getElementById('poem-search');
+    const searchResults = document.getElementById('search-results');
+    const searchResultsContainer = document.getElementById('search-results-container');
+    const collectionsContainer = document.getElementById('collections-container');
+    
+    // Search functionality
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = searchInput.value.trim();
+        
+        if (query.length > 0) {
+            fetch(`/poem/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(results => {
+                    searchResultsContainer.innerHTML = '';
+                    
+                    if (results.length > 0) {
+                        results.forEach(result => {
+                            const poemCard = document.createElement('div');
+                            poemCard.className = 'poem-card';
+                            
+                            const poemPreview = result.poem.content.split('\n\n')[0];
+                            
+                            poemCard.innerHTML = `
+                                <h3 class="poem-title">${result.poem.title}</h3>
+                                <div class="poem-meta">من ${result.collection_name} - عام ${result.poem.year}</div>
+                                <p class="poem-preview">${poemPreview}</p>
+                                <a href="/poem/${result.collection_id}/${result.poem.id}" class="poem-link">اقرأ القصيدة كاملة</a>
+                            `;
+                            
+                            searchResultsContainer.appendChild(poemCard);
+                        });
+                        
+                        searchResults.style.display = 'block';
+                        collectionsContainer.style.display = 'none';
+                    } else {
+                        searchResultsContainer.innerHTML = `
+                            <div class="no-results">
+                                <p>لم يتم العثور على نتائج تطابق "${query}"</p>
+                            </div>
+                        `;
+                        searchResults.style.display = 'block';
+                        collectionsContainer.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error searching poems:', error);
+                });
+        } else {
+            searchResults.style.display = 'none';
+            collectionsContainer.style.display = 'block';
+        }
+    });
+    
+    // Auto-search if there's a query in the URL
+    if (searchInput.value.trim().length > 0) {
+        searchForm.dispatchEvent(new Event('submit'));
+    }
+});
+</script>
+{% endblock %}
